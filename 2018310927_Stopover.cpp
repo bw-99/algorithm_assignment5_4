@@ -5,6 +5,7 @@
 #include <queue>
 #include <stack>
 #include <chrono>
+#include <float.h>
 using namespace std;
 
 typedef struct Vertice
@@ -13,41 +14,55 @@ typedef struct Vertice
     double ypos;
 }Vertice;
 
+
+typedef struct Item
+{
+    double **cost;
+    double* min;
+    int N;
+}Item;
+
+
 double getDist(Vertice* a, Vertice* b){
     int a_xpos=a->xpos; int a_ypos=a->ypos;
     int b_xpos=b->xpos; int b_ypos=b->ypos;
-
     return sqrt((a_xpos-b_xpos)*(a_xpos-b_xpos) + (a_ypos-b_ypos)*(a_ypos-b_ypos));
 }
 
-queue<int*> dynamicLoop(queue <int*>entireList,int* subList,int K,int index,int* stopover){
-    if(index==K){
-        int flag=1;
-        for(int i=0;i<K;i++){
-            for(int j=0;j<K;j++){
-                if(subList[i] == subList[j] && i!=j){
-                    flag=0;
-                    break;
-                }
-            }
-        }
-        if(flag){
-            entireList.push(subList);
-        }
-        return entireList;
-    }
-    
-    for(int i=0;i<K;i++){
-        int* subListSub=new int[K]();
 
-        for(int j=0;j<index;j++){
-            subListSub[j]=subList[j];
-        }
-        subListSub[index++]=stopover[i];
-        entireList=dynamicLoop(entireList,subListSub,K,index,stopover);
-        index-=1;
+void copyArr(int* a, int n,int *b)
+{
+    for (int i = 0; i < n; i++){
+        b[i] = a[i];
     }
-    return entireList;
+}
+ 
+void Permutation(int* a, int sz, int n,Item* itemTmp,int *b)
+{
+    if (sz - 1 == 0) {
+        int lastIndex=1;
+        double sum=0;
+        for(int i=0;i<n;i++){
+            sum+=itemTmp->cost[lastIndex][a[i]];
+            lastIndex=a[i];
+        }
+        sum+=itemTmp->cost[lastIndex][itemTmp->N];
+
+        if(sum < *(itemTmp->min)){
+            *(itemTmp->min)=sum;
+            copyArr(a, n,b);
+        }
+        return;
+    }
+ 
+    for (int i = 0; i < sz; i++) {
+        Permutation(a, sz - 1, n,itemTmp,b);
+
+        if (sz % 2 == 1)
+            swap(a[0], a[sz - 1]); 
+        else
+            swap(a[i], a[sz - 1]);
+    }
 }
 
 int main(int argc, char** argv){
@@ -101,7 +116,6 @@ int main(int argc, char** argv){
         }
     }
     
-
     for(int k=1;k<N+1;k++){
         for(int i=1;i<N+1;i++){
             for(int j=1;j<N+1;j++){
@@ -113,56 +127,29 @@ int main(int argc, char** argv){
         }
     }
 
+    double max=INFINITY;
 
+    double* min=&max;
 
-    int* stopOVerOrder=new int[3];
-    
+    int* target= new int[K];
 
-    queue<int*> entireList;
-    int* sublist=new int[K];
-    entireList=dynamicLoop(entireList,sublist,K,0,stopover);
-    double min=0;
-    int* target=new int[K];
+    Item tmpItem={cost,min,N};
+    Permutation(stopover, K, K,&tmpItem,target);
 
-    int* ftmp= new int[3];
-    ftmp=entireList.front();
-    entireList.pop();
-    int tmptmp=1;
-    for(int idx=0;idx<K;idx++){  
-        min+=cost[tmptmp][ftmp[idx]];
-        tmptmp=ftmp[idx];
-    }
-    min+=cost[tmptmp][N];
-
-    while(!entireList.empty()){
-        double minTemp=0;
-        int* tmp= new int[K];
-        tmp=entireList.front();
-        entireList.pop();
-        int tmpInt=1;
-        for(int idx=0;idx<K;idx++){  
-            minTemp+=cost[tmpInt][tmp[idx]];
-            tmpInt=tmp[idx];
-        }
-        minTemp+=cost[tmpInt][N];
-
-        if(minTemp < min){
-            target=tmp;
-            min=minTemp;
-        }
-    }
-   /* for(int i=0;i<K;i++){
+    for(int i=0;i<K;i++){
         printf("%d ",target[i]);
     }
-    printf("%f\n",min);*/
 
     stack<int> s;
     queue<int> qq;
+
     s.push(10);
     for(int i=0;i<K;i++){
         s.push(target[K-i-1]);
     }
     s.push(1);
+
+
     int lastVer=s.top();
     s.pop();
     qq.push(lastVer);
@@ -180,17 +167,16 @@ int main(int argc, char** argv){
 
     std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
 	std::chrono::milliseconds elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
 	double res_time = elapsed_time.count();
-
-
     FILE* out=fopen(argv[2],"w");
-    fprintf(out,"%d\n",qq.size());
-    printf("\n%d\n",qq.size());
+    fprintf(out,"%d\n",(int)qq.size());
+    printf("\n%d\n",(int)qq.size());
     while(!qq.empty()){
         fprintf(out,"%d ",qq.front());
         printf("%d ",qq.front());
         qq.pop();
     }
     fprintf(out,"\n%d",(int)res_time); 
-    fclose(out);
+    fclose(out);    
 }
